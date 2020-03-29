@@ -1,0 +1,7 @@
+>>> Warning 202 "main.c" Line 218(7,30): Variable never used:   ButtonCounterDifference
+>>> Warning 202 "main.c" Line 253(9,20): Variable never used:   Bottom_Temp
+>>> Warning 202 "main.c" Line 254(9,29): Variable never used:   Temperature_Treshold
+>>> Warning 202 "main.c" Line 255(9,31): Variable never used:   Temperature_Difference
+      Memory usage:   ROM=31%      RAM=8% - 17%
+      0 Errors,  4 Warnings.
+Build Successful.
