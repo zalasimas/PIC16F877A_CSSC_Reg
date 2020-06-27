@@ -328,7 +328,7 @@ float temp1;
  delay_ms(2000);
     
     if (ButtonCounter == max){   
-   ButtonCounter = 10;                           
+   ButtonCounter = 0;                           
  }                           
  }                                          
                                                                                                                                                                                                                                                                                                                                                                                      
@@ -341,7 +341,7 @@ if(input(pin_B4) == 0) {
  delay_ms(2000);      
  
      if (ButtonCounter <= min){   
-   ButtonCounter = 10;      
+   ButtonCounter = 0;      
      }                                
  }                           
                                                                                         

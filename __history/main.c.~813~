@@ -200,17 +200,16 @@ void main() {
 // Keep the pump off, until the user doesn't set the temperature!!!    
                  
 output_low(PIN_B5);
-                           
-            
+                                  
                                                                                                                                                                                  
 signed int16 raw_temp;
 signed int16 raw_temp1;
                                                                              
-float ButtonCounter = 10;                    // Starting point temperature set                    
+float ButtonCounter = 0;                    // Starting point temperature set                    
                                            
 float temp;                     
 float temp1;                      
-                   
+
                                                                   
     // lcd_putc("\f");                            // Print 'C '
      lcd_gotoxy(10, 1);                // Print 'C '
@@ -255,19 +254,16 @@ float temp1;
     //  lcd_putc("Pwr:  ");                            // Print 'C '                                                     
                                                                                 
      }             
-                                                                
+                                                   
+                                                                                              
       output_high(PIN_D7);                                
       delay_ms(3000);     
+                                   
+     while(TRUE){        
+    output_low(PIN_D7);          
+                           
                                                                                    
-     while(TRUE){ 
-                  
-   //Min and Max set temperatures
-  float min = 0;
-  float max = 100;          
-  
-  //Turn off LCD backlight
-  output_low(PIN_D7);        
-                                    
+                                        
     if(ds18b20_read(&raw_temp)) { 
       temp = (float)raw_temp / 16;               // Convert temperature raw value into degree Celsius (temp in °C = raw/16)
    //   lcd_gotoxy(1, 1);                          // Go to column 5 row 2
@@ -319,30 +315,30 @@ float temp1;
     }                       
  */     
  if(input(pin_B0) == 0) {             
-  
+                             
  //lcd_init();                          
  lcd_gotoxy(14,1);                  
  ButtonCounter = ButtonCounter+10;                                                                                                
- printf(lcd_putc, "%3.0f",ButtonCounter);    
+ printf(lcd_putc, "%2.0f",ButtonCounter);    
  output_high(PIN_D7);
  delay_ms(2000);
     
-    if (ButtonCounter == max){   
-   ButtonCounter = 10;                           
+    if (float ButtonCounter = 100){   
+   ButtonCounter = 0; 
  }                           
  }                                          
                                                                                                                                                                                                                                                                                                                                                                                      
-if(input(pin_B4) == 0) {          
+if(input(pin_B4) == 0) {
                                       
  lcd_gotoxy(14,1);                            
  ButtonCounter = ButtonCounter-10;                                         
- printf(lcd_putc, "%3.0f",ButtonCounter);
- output_high(PIN_D7);       
+ printf(lcd_putc, "%2.0f",ButtonCounter);
+ output_high(PIN_D7);
  delay_ms(2000);      
  
-     if (ButtonCounter <= min){   
-   ButtonCounter = 10;      
-     }                                
+     if (ButtonCounter <= 0){   
+   ButtonCounter = 10;     
+     }                          
  }                           
                                                                                         
                             

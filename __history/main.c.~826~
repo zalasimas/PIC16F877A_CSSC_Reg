@@ -206,11 +206,11 @@ output_low(PIN_B5);
 signed int16 raw_temp;
 signed int16 raw_temp1;
                                                                              
-float ButtonCounter = 10;                    // Starting point temperature set                    
+float ButtonCounter = 0;                    // Starting point temperature set                    
                                            
 float temp;                     
 float temp1;                      
-                   
+
                                                                   
     // lcd_putc("\f");                            // Print 'C '
      lcd_gotoxy(10, 1);                // Print 'C '
@@ -263,7 +263,7 @@ float temp1;
                   
    //Min and Max set temperatures
   float min = 0;
-  float max = 100;          
+  float max = 100;  
   
   //Turn off LCD backlight
   output_low(PIN_D7);        
@@ -328,7 +328,7 @@ float temp1;
  delay_ms(2000);
     
     if (ButtonCounter == max){   
-   ButtonCounter = 10;                           
+   ButtonCounter = 0; 
  }                           
  }                                          
                                                                                                                                                                                                                                                                                                                                                                                      
@@ -341,7 +341,7 @@ if(input(pin_B4) == 0) {
  delay_ms(2000);      
  
      if (ButtonCounter <= min){   
-   ButtonCounter = 10;      
+   ButtonCounter = 10;     
      }                                
  }                           
                                                                                         
