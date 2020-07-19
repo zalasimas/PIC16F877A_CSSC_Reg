@@ -15,6 +15,6 @@
    * Added debounce in some "warning" places.
    
    Need to pay attention to:
-      * Sensors placement (Thermal isolation, contact between sensor and contact substance);
-      * Both sensors response time (how quickly they respond to heat). Need to avoid temperature coincidence above threshold temperatures. 
+   * Sensors placement (Thermal isolation, contact between sensor and contact substance);
+   * Both sensors response time (how quickly they respond to heat). Need to avoid temperature coincidence above threshold temperatures. 
                            
