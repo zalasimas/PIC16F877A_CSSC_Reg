@@ -1,5 +1,8 @@
             
-  /*  
+  /* 
+  Dual stage solar heater controller v1.1 Beta    
+  
+   
   Comparing two temperatures together. If upper temperature have reached set temperature,                            
   the water pump is switched on. After that, upper temperature is falling and bottom temperature                                                                           
   increasing. So, theoretically this two temperatures must face together.     
@@ -10,367 +13,198 @@
    must be set under real device working conditions.
    
    by Simas Za 
-   */
    
+  =============                                      
    
-                                                                                                                                          
-//LCD module connections   
-#define LCD_RS_PIN      PIN_D0                               
-#define LCD_RW_PIN      PIN_D1
-#define LCD_ENABLE_PIN  PIN_D2
-#define LCD_DATA4       PIN_D3                                                                            
-#define LCD_DATA5       PIN_D4
-#define LCD_DATA6       PIN_D5                             
-#define LCD_DATA7       PIN_D6                                 
-//End LCD module connections                                                  
-                                     
-                                                                                                                                   
-#include <16F877A.h>                         
-#fuses HS,NOWDT,NOPROTECT,NOLVP                       
-#use delay(clock = 8MHz)                    
-#include <lcd.c>                               
-                                    
-//#FUSES FRC                                
-                                                                                                                                
-//#use delay(restart_wdt)                                                                  
-                                       
-                                  
-                                
-//#include <lcd.c>                                                        
-                              
-                          
-#define DS18B20_PIN PIN_B1                         // DS18B20 Data pin is connected to pin RB1
-#define DS18B20_PIN PIN_B1                         // DS18B20 Data pin is connected to pin RB1
-#define DS18B20_PIN1 PIN_B2                         // DS18B20 Data pin is connected to pin RB1
-
-#define Down                        PIN_B4                      // Temperature down button
-#define Up                          PIN_B3                     // Temperature up button                                     
-#define PWR                         PIN_B5                    // PWR pin to turn on a water pump                                
-#define LCD_BACKLIGHT_ON            PIN_D7                   // Pin to turn on LCD backlight   
-                                                                        
- 
-                                                 
-// DS18B20 sensor functions for full run                                                       
-int1 ds18b20_start(){                             
-  output_low(DS18B20_PIN);                         // Send reset pulse to the DS18B20 sensor
-  output_drive(DS18B20_PIN);                       // Configure DS18B20_PIN pin as output
-  delay_us(500);                                   // Wait 500 us 
-  output_float(DS18B20_PIN);                       // Configure DS18B20_PIN pin as input
-  delay_us(100);                                   //wait to read the DS18B20 sensor response
-  if (!input(DS18B20_PIN)) {                                                                 
-    delay_us(400);                                 // Wait 400 us  
-    return TRUE;                                   // DS18B20 sensor is present
-  }                              
-  return FALSE; 
-}                                      
-                                                      
-                                                                                                               
-void ds18b20_write_bit(int1 value){                 
-  output_low(DS18B20_PIN);                                                                                                                       
-  output_drive(DS18B20_PIN);                       // Configure DS18B20_PIN pin as output
-  delay_us(2);                                     // Wait 2 us
-  output_bit(DS18B20_PIN, value);                        
-  delay_us(80);                                    // Wait 80 us
-  output_float(DS18B20_PIN);                       // Configure DS18B20_PIN pin as input
-  delay_us(2);                                     // Wait 2 us                                                                     
-}                     
-                                                
- 
-void ds18b20_write_byte(int8 value){               
-  int8 i;                
-  for(i = 0; i < 8; i++)
-    ds18b20_write_bit(bit_test(value, i));
-}
- 
-                                                         
-int1 ds18b20_read_bit(void) {                          
-  int1 value;       
-  output_low(DS18B20_PIN);
-  output_drive(DS18B20_PIN);                       // Configure DS18B20_PIN pin as output
-  delay_us(2);                         
-  output_float(DS18B20_PIN);                       // Configure DS18B20_PIN pin as input
-  delay_us(5);                                     // Wait 5 us
-  value = input(DS18B20_PIN);
-  delay_us(100);                                   // Wait 100 us
-  return value;           
-}
-                          
-                        
-int8 ds18b20_read_byte(void) {
-  int8 i, value = 0;
-  for(i = 0; i  < 8; i++)
-    shift_right(&value, 1, ds18b20_read_bit());
-  return value;                                                    
-}                   
-  
- 
-int1 ds18b20_read(int16 *raw_temp_value) {
-  if (!ds18b20_start())                              // Send start pulse
-    return FALSE;
-  ds18b20_write_byte(0xCC);                          // Send skip ROM command
-  ds18b20_write_byte(0x44);                          // Send start conversion command
-  while(ds18b20_read_byte() == 0);                   // Wait for conversion complete
-  if (!ds18b20_start())                              // Send start pulse
-    return FALSE;                                    // Return 0 if error
-  ds18b20_write_byte(0xCC);                          // Send skip ROM command
-  ds18b20_write_byte(0xBE);                          // Send read command
-  *raw_temp_value = ds18b20_read_byte();             // Read temperature LSB byte and store it on raw_temp_value LSB byte
-  *raw_temp_value |= (int16)(ds18b20_read_byte()) << 8;     // Read temperature MSB byte and store it on raw_temp_value MSB byte
-  return TRUE;                                              // OK --> return 1
-}         
-      
-      
-     int1 ds18b20_start1(){
-  output_low(DS18B20_PIN1);                        // Send reset pulse to the DS18B20 sensor
-  output_drive(DS18B20_PIN1);                      // Configure DS18B20_PIN pin as output
-  delay_us(500);                                   // Wait 500 us
-  output_float(DS18B20_PIN1);                      // Configure DS18B20_PIN pin as input
-  delay_us(100);                                   //wait to read the DS18B20 sensor response
-  if (!input(DS18B20_PIN1)) {                                                                           
-    delay_us(400);                                 // Wait 400 us  
-                      
-    return TRUE;                                   // DS18B20 sensor is present
-  }           
-    output_high(DS18B20_PIN1);    
-    return FALSE; 
-}                                                     
-       
-     
-void ds18b20_write_bit1(int1 value1){
-  output_low(DS18B20_PIN1);
-  output_drive(DS18B20_PIN1);                       // Configure DS18B20_PIN pin as output
-  delay_us(2);                                      // Wait 2 us
-  output_bit(DS18B20_PIN1, value1);
-  delay_us(80);                                     // Wait 80 us
-  output_float(DS18B20_PIN1);                       // Configure DS18B20_PIN pin as input
-  delay_us(2);                                      // Wait 2 us
-}                            
-                 
-
-void ds18b20_write_byte1(int8 value1){
-  int8 a;
-  for(a = 0; a < 8; a++)                                   
-    ds18b20_write_bit1(bit_test(value1, a));
-}
-
-
-int1 ds18b20_read_bit1(void) {                       
-  int1 value1;
-  output_low(DS18B20_PIN1);
-  output_drive(DS18B20_PIN1);                       // Configure DS18B20_PIN pin as output
-  delay_us(2);
-  output_float(DS18B20_PIN1);                       // Configure DS18B20_PIN pin as input                 
-  delay_us(5);                                      // Wait 5 us
-  value1 = input(DS18B20_PIN1);
-  delay_us(100);                                    // Wait 100 us
-  return value1;      
-}                           
-                         
-                   
-int8 ds18b20_read_byte1(void) {       
-  int8 a, value1 = 0;                             
-  for(a = 0; a  < 8; a++)
-    shift_right(&value1, 1, ds18b20_read_bit1());
-  return value1;
-}
-
-
-int1 ds18b20_read1(int16 *raw_temp_value1) {
-  if (!ds18b20_start1())                                   // Send start pulse         
-  return FALSE; 
-  ds18b20_write_byte1(0xCC);                               // Send skip ROM command
-  ds18b20_write_byte1(0x44);                               // Send start conversion command
-  while(ds18b20_read_byte1() == 0);                        // Wait for conversion complete
-  if (!ds18b20_start1()) {                                  // Send start pulse     
-       return FALSE;                                          // Return 0 if error
-  }                                     
-  ds18b20_write_byte1(0xCC);                               // Send skip ROM command
-  ds18b20_write_byte1(0xBE);                               // Send read command
-  *raw_temp_value1 = ds18b20_read_byte1();                 // Read temperature LSB byte and store it on raw_temp_value LSB byte
-  *raw_temp_value1 |= (int16)(ds18b20_read_byte1()) << 8;     // Read temperature MSB byte and store it on raw_temp_value MSB byte
-  return TRUE;                                                // OK --> return 1
-}                               
-                                  
-                                                     
-void main() {
- 
-// Initialize LCD module
- lcd_init(); 
-                                            
-// Keep the pump off, until the user doesn't set the temperature!!!    
-                 
-output_low(PIN_B5);
-                           
-            
-                                                                                                                                                                                 
-signed int16 raw_temp;
-signed int16 raw_temp1;
-                                                                             
-float ButtonCounter = 10;                    // Starting point temperature set                    
-                                           
-float temp;                     
-float temp1;                      
-                   
-                                                                  
-    // lcd_putc("\f");                            // Print 'C '
-     lcd_gotoxy(10, 1);                // Print 'C '
-     lcd_putc("Set:  ");                       // Print 'C ' 
-     lcd_gotoxy(14, 1);                // Print 'C '
-     printf(lcd_putc, "%2.0f",ButtonCounter);    
-                                              
-      lcd_gotoxy(10, 2);       
-      lcd_putc("Pwr:  ");                            // Print 'C '
-                                
-      lcd_gotoxy(1, 1);                          // Go to column 5 row 2
-      printf(lcd_putc, "V: ");                                  
+   Versions: 
+   
+   V1.0:
+   * Working upper temperature pump control;                                
+   * Working user buttons (because of lack of separation of the measurement process buttons response is very slowly);
+   * Working LCD backlight according to user button presses;           
+   * Increasing and decreasing set temperature every 10 degrees celsius.   
+              
+   V1.1(current - need to test in real working conditions):
+   * Working upper and bottom temperature pump control. The temperatures of each stage can response to its threshold;
+   * Added user set temperature mode after turning on the device. For this reason buttons became convenient and fast response;       
+   * Removed LCD backlight manipulation according to the button presses (now backlight running continuously);
+   * Added debounce in some "warning" places.
+   
+   Possible issues in beta version
+      need to pay attention to:
+      * Sensors placement (Thermal isolation, contact between sensor and contact substance);
+      * Both sensors response time (how quickly they respond to heat). Need to avoid temperature coincidence above threshold temperatures.   
+                                                       
+   */                                                                                       
+                                                                         
                                                                      
-      lcd_gotoxy(1, 2);  
-      printf(lcd_putc, "A: ");// Go to column 5 row 2
-                  
-    // Show the data, until the MCU loads.              
-                  
-      if(ds18b20_read(&raw_temp)) { 
-      temp = (float)raw_temp / 16;               // Convert temperature raw value into degree Celsius (temp in °C = raw/16)
-   //   lcd_gotoxy(1, 1);                          // Go to column 5 row 2
-   //   printf(lcd_putc, "V: ");
-      lcd_gotoxy(2, 1);      
-      printf(lcd_putc, "%3.0f", temp);                                                                                                          
-      lcd_putc(223);                             // Print degree symbol ( ° )
-      lcd_putc("C; ");                            // Print 'C '
-      //lcd_gotoxy(10, 1);    
-      //lcd_putc("Set:  ");                            // Print 'C '         
-    }    
-                                                    
-                                                                             
-     if(ds18b20_read1(&raw_temp1)) {                                    
-      temp1 = (float)raw_temp1 / 16;               // Convert temperature raw value into degree Celsius (temp in °C = raw/16)
-     // lcd_gotoxy(1, 2);  
-     // printf(lcd_putc, "A: ");// Go to column 5 row 2
-      lcd_gotoxy(2, 2);                                      
-      printf(lcd_putc, "%3.0f", temp1);
-      lcd_putc(223);                             // Print degree symbol ( ° )
-      lcd_putc("C; ");                            // Print 'C '                                   
-                                                     
-     // lcd_gotoxy(10, 2);                           
-    //  lcd_putc("Pwr:  ");                            // Print 'C '                                                     
-                                                                                
-     }             
-                                                                
-      output_high(PIN_D7);                                
-      delay_ms(3000);     
-                                                                                   
-     while(TRUE){ 
-                  
-   //Min and Max set temperatures
-  float min = 0;
-  float max = 100;          
-  
-  //Turn off LCD backlight
-  output_low(PIN_D7);        
+                                                                     
+#include "main.h"                                                                
                                     
-    if(ds18b20_read(&raw_temp)) { 
-      temp = (float)raw_temp / 16;               // Convert temperature raw value into degree Celsius (temp in °C = raw/16)
-   //   lcd_gotoxy(1, 1);                          // Go to column 5 row 2
-   //   printf(lcd_putc, "V: ");
-      lcd_gotoxy(2, 1);      
-      printf(lcd_putc, "%3.0f", temp);                                                                                                          
-      lcd_putc(223);                             // Print degree symbol ( ° )
-      lcd_putc("C; ");                            // Print 'C '
-      //lcd_gotoxy(10, 1);    
-      //lcd_putc("Set:  ");                            // Print 'C '         
-    }                  
-   else
-   {              
-                          
-    //  An error "handler" is generated if V sensor is not present       
-      output_high(PIN_D7);
-      lcd_putc('\f');                             // LCD clear
-      lcd_gotoxy(5, 1);                          // Go to column 5 row 2
-      printf(lcd_putc, "Davikliu");          
-      lcd_gotoxy(5, 2);                                                 
-      printf(lcd_putc, "klaida!");                         
-      delay_ms(3000);                                           
-      reset_cpu();        // Restart CPU    
-        }                                                                                 
+// "Flag", indicating that the pump is switched on    
+//extern int On_flag;                                                                                                                                                  
                                                   
-                                                              
-     if(ds18b20_read1(&raw_temp1)) {                                    
-      temp1 = (float)raw_temp1 / 16;               // Convert temperature raw value into degree Celsius (temp in °C = raw/16)
-     // lcd_gotoxy(1, 2);  
-     // printf(lcd_putc, "A: ");// Go to column 5 row 2
-      lcd_gotoxy(2, 2);                                      
-      printf(lcd_putc, "%3.0f", temp1);
-      lcd_putc(223);                             // Print degree symbol ( ° )
-      lcd_putc("C; ");                            // Print 'C '                                   
-                                                     
-     // lcd_gotoxy(10, 2);                           
-    //  lcd_putc("Pwr:  ");                            // Print 'C '                                                     
-                                                                                
-     }                                      
-                           
-    /*                                                                                                                     
-       // In case of total CPU failure
-    else {                                                         
-      lcd_putc('\f');                             // LCD clear
-      lcd_gotoxy(5, 2);                          // Go to column 5 row 2
-      printf(lcd_putc, " Klaida! ");
-      delay_ms(3000);                                           
-      reset_cpu();        // Restart CPU    
-    }                       
- */     
- if(input(pin_B0) == 0) {             
-  
- //lcd_init();                          
- lcd_gotoxy(14,1);                  
- ButtonCounter = ButtonCounter+10;                                                                                                
- printf(lcd_putc, "%3.0f",ButtonCounter);    
- output_high(PIN_D7);
- delay_ms(2000);
-    
-    if (ButtonCounter == max){   
-   ButtonCounter = 10;                           
- }                           
- }                                          
-                                                                                                                                                                                                                                                                                                                                                                                     
-if(input(pin_B4) == 0) {          
-                                      
- lcd_gotoxy(14,1);                            
- ButtonCounter = ButtonCounter-10;                                         
- printf(lcd_putc, "%3.0f",ButtonCounter);
- output_high(PIN_D7);       
- delay_ms(2000);      
+void main() {                         
+
+//Turn on LCD backlight                    
+output_high(PIN_D7);
+
+// Initialize LCD module
+lcd_init();
+                        
+                                
+// Keep the pump off, until the user doesn't set the temperature!!!                     
+output_low(PIN_B5);           
+                                                      
+float Min_Threshold_Value = 41;       
+                                             
+                                
+// Start doing user temperature set mode routine.                                                                                
+do{                                                      
+ User_Set_Mode();                                 
+ delay_ms(300);                  // Debounce feature for the buttons
+}                                                                        
+                                                                      
+while(input(pin_B0) == 1 || input(pin_B4) == 1);                                         
+                                                                     
+break;
+continue;
+   
+Show_User_Info();                                                
+delay_ms(10);                                    
+                                                          
+lcd_gotoxy(14, 2);                                  
+printf(lcd_putc, "Off ");                                                            
  
-     if (ButtonCounter <= min){   
-   ButtonCounter = 10;      
-     }                                
- }                           
-                                                                                        
+                                    
+while(TRUE){                                                                                 
+  //Turn on LCD backlight                              
+  //output_high(PIN_D7);   
+
+                                            
+  Read_Sensors();              
+
+
+// Starting to read user button values 
+//User_Buttons();    
+
+//delay_ms(20);               // Minimum amount of time to read user button  values    
+
+
+// Starting to compare user set temperature value and upper sensor temperature  read value.                                                                                              
+//Compare_Upper_Temp();   
+//delay_ms(20);               // Minimum amount of time to  compare user set temperature value and upper sensor temperature  read value.                                                               
+                                 
+ 
+       
+
+                                                                                                                                                                    
+//================================     
+                                                                                                                                                                                          
+// If the pump is switched on, we starting to make actions according to the bottom temperature value.                                                                                              
+         
+      // Checking, if the MCU pin connected to pump is high. If yes - do the bottom animation                                            
+       // if(input(PIN_B5)){       
+     // Gal whailui reikia didesnio delay tarp komandu vykdymo, nes ne visada issijungia siurblys...? 
+          while(temp < Min_Threshold_Value){           
+            // Starting to compare user set temperature value and upper sensor temperature  read value.                                                                                              
+            Compare_Upper_Temp();
+            delay_ms(500);  
+            Read_Sensors();                                           
+}
+          
+          while(temp > Min_Threshold_Value){     
+                                                                                                         
+           Read_Sensors();          
+                                            
+          }                                                                                             
+         
+            delay_ms(1000);
+            Read_Sensors();                                                          
+         
+         if(temp < Min_Threshold_Value){
+                                                   
+            output_low(pin_B5);                  // Switch pump off                    
+            // delay_ms(5000);                          
+            lcd_gotoxy(14, 2);                                  
+            printf(lcd_putc, "Off ");                        
+                                                    
+}                                                               
+        //    {                                       
+         //   output_high(pin_B5);                 // Switch pump on             
+           // Bottom_Waiting_Animation();
+         //   delay_ms(2000);                                  
+           // Read_Sensors();                 
+  /*                                   
+            if(temp < Min_Threshold_Value){                          
+                                           
+             output_low(pin_B5);                  // Switch pump off                    
+            // delay_ms(5000);                          
+            lcd_gotoxy(14, 2);                                  
+            printf(lcd_putc, "Off ");                                                        
+            }                 
+  }                         
+*/                                             
+         //   }                                       
+           // break;                
+          //  continue;                     
+                        
+      /*                                     
+        if(input(PIN_B5)){                          
+                                                                                      
+          while(temp < Min_Threshold_Value)                
+            {                             
+            output_high(pin_B5);                 // Switch pump on                                
+            Bottom_Waiting_Animation(); 
+            }                         
+           // break; 
+           // continue;         
+}                         
+                                                                              
+   */  
+   /*
+ // Control and last one check: If the set temp is less than threshold - turn the pump off.
+ if(temp < Min_Threshold_Value){
+        
+      input(PIN_B5) == 0;              
+}                                           
+     
+                                                        
+      /*                                  
+            output_low(pin_B5);                  // Switch pump off                    
+            // delay_ms(5000);                          
+            lcd_gotoxy(14, 2);                                 
+            printf(lcd_putc, "Off ");        
+        */                                     
+                                                                        
+     // Check, if bottom temperature is higher than minimal threshold value. If no - turn the pump off.
+     /*
+        if(temp < 40){                    
                             
-    if (temp >= ButtonCounter){          
-     output_high(pin_B5);                   
-    // delay_ms(5000);            
-     lcd_gotoxy(14, 2);     
-     printf(lcd_putc, "On ");
-    }   
-                                                                    
-    if (temp <= ButtonCounter || temp == temp1){ 
-     output_low(pin_B5);                  
-    // delay_ms(5000);            
-     lcd_gotoxy(14, 2);                               
-     printf(lcd_putc, "Off ");                   
-    }
-    
-    if(ButtonCounter == 10){   
-     output_low(pin_B5);                  
-    // delay_ms(5000);            
-     lcd_gotoxy(14, 2);                               
-     printf(lcd_putc, "Off ");  
-    }
-                                                                                                 
-     }                                                                                                                                                                      
-     reset_cpu();   
-    delay_ms(2000);
- }                                
+              output_low(pin_B5);                 // Switch pump off    
+            // delay_ms(5000);                          
+             lcd_gotoxy(14, 2);                                 
+             printf(lcd_putc, "Off ");        
+                                                                          
+         } 
+         */                                                          
+                                      
+     
+       /*                                            
+          if(temp1 < 25){ 
+                
+              output_low(pin_B5);                     
+            // delay_ms(5000);                          
+             lcd_gotoxy(14, 2);                                 
+             printf(lcd_putc, "Off ");        
+                                        
+             }            
+             */                                       
+            
+ // reset_cpu(); 
+                          
+       }                                                                                                                                                                                  
+}
  
     // End of code
-   
+                                                                                                 

@@ -1,0 +1,87 @@
+            
+  /*  
+  Comparing two temperatures together. If upper temperature have reached set temperature,                            
+  the water pump is switched on. After that, upper temperature is falling and bottom temperature                                                                           
+  increasing. So, theoretically this two temperatures must face together.     
+    
+   If this theoretical model will be wrong, then will need to set reference temperature
+   (about 35 C). And compare bottom temperature with this reference. If bottom temperature will
+   reach reference - the water pump will be switched off. One more thing - reference temperature
+   must be set under real device working conditions.
+   
+   by Simas Za 
+   */
+
+                                                                     
+                                                                     
+#include "main.h"                                                                
+                                    
+// "Flag", indicating that the pump is switched on    
+//extern int On_flag;                                                                                                                                                  
+                                                  
+void main() {                         
+
+//Turn on LCD backlight                    
+output_high(PIN_D7);
+
+// Initialize LCD module
+lcd_init();
+                        
+
+// Keep the pump off, until the user doesn't set the temperature!!!                     
+output_low(PIN_B5);           
+
+float Min_Threshold_Value = 30;       
+                                             
+                          
+// Start doing user set mode routine. !!!!!!  PABAIGT, KAD GRAZIAI ISVESTU PRADINE INFO IR PABAIGT APACIOS ALGORITMA !!!!!!                                                                                  
+do{                                                      
+ User_Set_Mode();                                 
+ delay_ms(300);                  // Debounce feature for the buttons
+}                                                                        
+                                                                      
+while(input(pin_B0) == 1 || input(pin_B4) == 1);                                         
+                                                                     
+break;                                                                                   
+   
+Show_User_Info();                    
+delay_ms(10);                                    
+                                                          
+lcd_gotoxy(14, 2);                                  
+printf(lcd_putc, "Off ");                                                            
+
+                                    
+do{
+ Read_Sensors(); 
+ delay_ms(1000);
+ Compare_Upper_Temp();            
+ delay_ms(20);             
+}                                                                        
+                                                                      
+while(temp == Min_Threshold_Value);             
+                                    
+break;
+delay_ms(100);   
+                    
+do{
+ Read_Sensors();      
+ delay_ms(1000);          
+}                                                                        
+                                                                      
+while(temp < Min_Threshold_Value);             
+                                                    
+break;
+delay_ms(100);
+               
+if(temp < Min_Threshold_Value){
+                             
+   output_low(pin_B5);                  
+  // delay_ms(5000);             
+  lcd_gotoxy(14, 2);                               
+  printf(lcd_putc, "Off ");      
+
+}                                                                                       
+}
+                                                         
+                                                         
+       
